@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成AIと就職活動レポート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral & Calm Blue -->
+    <!-- Application Structure Plan: The SPA is designed as a top-down thematic dashboard, guiding a student user logically. It starts with a high-level overview (key stats cards) to set the stage. It then drills down into the two main perspectives: 'Student Usage' (with a bar chart) and 'Company Viewpoint' (with a text-based layout focusing on the 'interview mismatch' risk). This is followed by a balanced 'Pros & Cons' section (2-column text) and concludes with an actionable, interactive 'Smart Usage Guide' (a Do/Don't toggle). This structure, navigated by a sticky nav, allows users to either follow the logical flow or jump directly to the section they need, prioritizing ease of understanding and actionability over a linear report format. -->
+    <!-- Visualization & Content Choices: 1. Key Stats (Top) -> Goal: Inform/Overview -> Viz: 3 Key Figure Cards (HTML/Tailwind) -> Interaction: None (static) -> Justification: High-impact, scannable summary of the current landscape. 2. Student Usage -> Goal: Inform/Compare -> Viz: Bar Chart (Chart.js/Canvas) -> Interaction: Hover tooltips -> Justification: Clearly compares the popularity of different *how* students use AI, showing 'polishing' is dominant. 3. Company Viewpoint -> Goal: Warn/Explain -> Viz: 2-column text layout (HTML/Flexbox) -> Interaction: None (static) -> Justification: A chart on 'company stance' was less clear; the key risk ('interview mismatch') is better explained with focused text, directly addressing the 'will I get caught?' fear. 4. Pros & Cons -> Goal: Compare -> Viz: 2-column text list (HTML/Grid) -> Justification: Simple, direct comparison of opposing concepts for easy digestion. 5. Smart Usage Guide -> Goal: Advise/Organize -> Viz: Interactive Tab/Toggle (HTML/JS) -> Interaction: Click to toggle 'Do' vs 'Don't' lists -> Justification: Makes actionable advice scannable and directly comparable, encouraging active user engagement with the final recommendations. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #333;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            @apply px-3 py-2 text-sm font-medium text-neutral-600 hover:text-blue-600 transition-colors duration-200;
+        }
+        .nav-link-active {
+            @apply text-blue-600 font-semibold;
+        }
+        .guide-tab {
+            @apply px-6 py-3 text-lg font-semibold rounded-lg cursor-pointer transition-all duration-300;
+        }
+        .guide-tab-active {
+            @apply bg-blue-600 text-white shadow-lg;
+        }
+        .guide-tab-inactive {
+            @apply bg-white text-blue-600 border border-blue-200 hover:bg-blue-50;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+
+    <header class="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-sm">
+        <nav class="container mx-auto px-4 flex items-center justify-between h-16">
+            <h1 class="text-xl font-bold text-neutral-800">生成AIと就職活動</h1>
+            <div id="nav-links" class="flex items-center space-x-2 md:space-x-4">
+                <a href="#top" class="nav-link nav-link-active">トップ</a>
+                <a href="#student" class="nav-link">学生の利用</a>
+                <a href="#company" class="nav-link">企業の視点</a>
+                <a href="#pros-cons" class="nav-link">メリット/リスク</a>
+                <a href="#guide" class="nav-link">賢い活用術</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4">
+
+        <section id="top" class="py-16 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">生成AIは、就活の"敵"か"味方"か？</h2>
+            <p class="text-lg text-neutral-600 max-w-3xl mx-auto mb-10">
+                生成AIは、エントリーシート（ES）作成をはじめとする就職活動に急速に浸透しています。
+                学生の利用実態と企業の視点をデータから分析し、AIと賢く付き合う方法を探ります。
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-neutral-200">
+                    <div class="text-blue-600 text-5xl font-bold mb-2">66.6%</div>
+                    <div class="text-lg font-semibold text-neutral-700">学生の就活利用率</div>
+                    <p class="text-sm text-neutral-500 mt-1">(2026年卒学生、Mynavi調べ)</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-neutral-200">
+                    <div class="text-blue-600 text-5xl font-bold mb-2">57.7%</div>
+                    <div class="text-lg font-semibold text-neutral-700">企業の容認スタンス</div>
+                    <p class="text-sm text-neutral-500 mt-1">(「活用してほしい」と回答、Mynavi調べ)</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-neutral-200">
+                    <div class="text-red-600 text-5xl font-bold mb-2">55.5%</div>
+                    <div class="text-lg font-semibold text-neutral-700">"人事にバレる"という不安</div>
+                    <p class="text-sm text-neutral-500 mt-1">(AI利用学生、Synergy Career調べ)</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="student" class="py-16">
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6 text-center">学生の利用実態</h2>
+            <p class="text-lg text-neutral-600 max-w-3xl mx-auto mb-10 text-center">
+                学生はAIをどのように使っているのでしょうか？データは「丸投げ」ではなく「サポート」としての利用が主流であることを示しています。
+            </p>
+            
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-neutral-200 max-w-4xl mx-auto">
+                <h3 class="text-xl font-semibold text-neutral-700 mb-4 text-center">主なAI利用方法（就職活動）</h3>
+                <div class="chart-container">
+                    <canvas id="studentUsageChart"></canvas>
+                </div>
+                <div class="mt-6 text-center text-neutral-600">
+                    <p>「ESの推敲・添削」が約7割と圧倒的。一方で、ES作成をAIに「丸投げ」する学生はわずか9%（FNN調べ）と、多くの学生がAIを補助的に活用している実態がわかります。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="company" class="py-16">
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6 text-center">企業の視点：何を見ているのか？</h2>
+            <p class="text-lg text-neutral-600 max-w-3xl mx-auto mb-10 text-center">
+                企業側もAIの利用を容認する傾向が強まっています。しかし、それは「AIが書いたES」を評価するということではありません。企業が本当に見ているポイントは別にあります。
+            </p>
+
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-neutral-200 max-w-4xl mx-auto">
+                <h3 class="text-xl font-semibold text-neutral-700 mb-6 text-center">企業が「AI利用」を見抜くポイント</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/3 p-4 bg-neutral-100 rounded-lg border border-neutral-200">
+                        <h4 class="text-lg font-semibold text-neutral-700 mb-2">検知ツール</h4>
+                        <p class="text-neutral-600">一部の企業はAI検知ツールを導入していますが、その精度は万全ではなく、これが本質ではありません。</p>
+                    </div>
+                    <div class="md:w-2/3 p-6 bg-red-50 rounded-lg border border-red-200">
+                        <h4 class="text-xl font-semibold text-red-700 mb-3">面接での「深掘り」</h4>
+                        <p class="text-neutral-700 font-medium">
+                            これが最大の関門です。企業はESの内容が「あなた自身の経験」に基づいているか、あなたの「言葉」で語れるかを見ています。
+                        </p>
+                        <ul class="list-disc list-inside mt-3 text-neutral-600 space-y-1">
+                            <li>ESに書かれたエピソードを具体的に説明できない。</li>
+                            <li>使われている言葉と本人の語彙力にギャップがある。</li>
+                            <li>ESの内容と面接での受け答えに矛盾が生じる。</li>
+                        </ul>
+                        <p class="mt-4 text-neutral-700 font-semibold">
+                            「ESの内容と面接での不一致」こそが、AI利用がバレる最大の理由です。
+                        </p>
+                    </div>
+                </div>
+                <p class="mt-6 text-center text-neutral-600">
+                    企業は「AIを使ったこと」を問題視するより、「AIに書かせた内容を自分のものにできていないこと」を問題視します。
+                </p>
+            </div>
+        </section>
+
+        <section id="pros-cons" class="py-16">
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6 text-center">メリットとリスク</h2>
+            <p class="text-lg text-neutral-600 max-w-3xl mx-auto mb-10 text-center">
+                AIの利用は「諸刃の剣」です。効率化という大きなメリットがある一方、使い方を誤ると重大なリスクを伴います。
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-neutral-200">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">＋ メリット (Merits)</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-blue-600 font-bold text-xl mr-3">✓</span>
+                            <span class="text-neutral-700">作業時間の圧倒的短縮</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 font-bold text-xl mr-3">✓</span>
+                            <span class="text-neutral-700">文章の質向上（誤字脱字・文法修正）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 font-bold text-xl mr-3">✓</span>
+                            <span class="text-neutral-700">客観的な自己分析のサポート</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 font-bold text-xl mr-3">✓</span>
+                            <span class="text-neutral-700">面接の練習相手（模擬面接）</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-red-200">
+                    <h3 class="text-2xl font-semibold text-red-600 mb-4">！ リスク (Risks)</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-red-600 font-bold text-xl mr-3">✗</span>
+                            <span class="text-neutral-700">個性のない、ありきたりな文章になる</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-600 font-bold text-xl mr-3">✗</span>
+                            <span class="text-neutral-700">面接で深掘りされた時に「詰む」</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-600 font-bold text-xl mr-3">✗</span>
+                            <span class="text-neutral-700">事実と異なる内容（ハルシネーション）の混入</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-600 font-bold text-xl mr-3">✗</span>
+                            <span class="text-neutral-700">個人情報の入力による情報漏洩の懸念</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="guide" class="py-16">
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6 text-center">AIの賢い活用術</h2>
+            <p class="text-lg text-neutral-600 max-w-3xl mx-auto mb-10 text-center">
+                では、どうすればリスクを避け、AIを「賢いアシスタント」として使えるのでしょうか？
+                重要なのは「AIに任せる」のではなく「AIを使いこなす」という意識です。
+            </p>
+
+            <div class="max-w-4xl mx-auto">
+                <div class="flex justify-center space-x-4 mb-8">
+                    <button id="guideToggleDo" class="guide-tab guide-tab-active">
+                        DO - 賢い使い方
+                    </button>
+                    <button id="guideToggleDont" class="guide-tab guide-tab-inactive">
+                        DON'T - 危険な使い方
+                    </button>
+                </div>
+
+                <div id="guideContentDo" class="bg-white p-8 rounded-xl shadow-lg border border-neutral-200">
+                    <h3 class="text-2xl font-semibold text-blue-700 mb-6 text-center">DO: 賢い使い方</h3>
+                    <ol class="list-decimal list-outside space-y-4 pl-6 text-neutral-700 text-lg">
+                        <li>
+                            <span class="font-semibold">まずは「自分の経験」を棚卸しする</span><br>
+                            <span class="text-sm">AIはあなたの経験を知りません。核となるエピソードは必ず自分で用意します。</span>
+                        </li>
+                        <li>
+                            <span class="font-semibold">アイデアの「壁打ち相手」として使う</span><br>
+                            <span class="text-sm">「この経験から言える強みは？」など、自己分析の深掘りに使います。</span>
+                        </li>
+                        <li>
+                            <span class="font-semibold">文章の「たたき台」として生成させる</span><br>
+                            <span class="text-sm">ゼロから書くのではなく、構成案やドラフトとして利用します。</span>
+                        </li>
+                        <li>
+                            <span class="font-semibold">最終的な「推敲・添削」に使う</span><br>
+                            <span class="text-sm">誤字脱字、文法、より良い「てにをは」のチェックに最適です。</span>
+                        </li>
+                        <li class="mt-4 pt-4 border-t border-blue-100">
+                            <span class="font-bold text-blue-700 text-xl">最重要：必ず「自分の言葉」で徹底的に修正する</span><br>
+                            <span class="text-sm">生成された文章をそのまま使わず、自分のエピソードと言葉で血を通わせます。</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <div id="guideContentDont" class="bg-white p-8 rounded-xl shadow-lg border border-red-200 hidden">
+                    <h3 class="text-2xl font-semibold text-red-700 mb-6 text-center">DON'T: 危険な使い方</h3>
+                    <ol class="list-decimal list-outside space-y-4 pl-6 text-neutral-700 text-lg">
+                        <li>
+                            <span class="font-semibold">ゼロから全て「丸投げ」する</span><br>
+                            <span class="text-sm">個性がなく、他の学生と似通ったESが完成します。</span>
+                        </li>
+                        <li>
+                            <span class="font-semibold">生成された文章を「コピペ」で提出する</span><br>
+                            <span class="text-sm">事実誤認が含まれている可能性があり、何より面接で必ずバレます。</span>
+                        </li>
+                        <li>
+                            <span class="font-semibold">AIが生成した「嘘の経験」を盛り込む</span><br>
+                            <span class="text-sm">これは論外です。面接で100%破綻します。</span>
+                        </li>
+                        <li class="mt-4 pt-4 border-t border-red-100">
+                            <span class="font-bold text-red-700 text-xl">最危険：自分が「面接で話せない内容」を書く</span><br>
+                            <span class="text-sm">ESは面接のための「会話の設計図」です。自分が語れない内容を書くのは自殺行為です。</span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="mt-12 max-w-3xl mx-auto bg-blue-50 border border-blue-200 p-8 rounded-xl shadow-lg text-center">
+                <h3 class="text-2xl font-bold text-blue-800">
+                    結論：AIは「アシスタント」。<br>
+                    主役は、あなた自身の「経験」と「言葉」です。
+                </h3>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 mt-10 border-t border-neutral-200">
+        <p class="text-neutral-500 text-sm">
+            本レポートは公開されている調査データ（Mynavi, Synergy Career, FNN等）に基づき作成されました。
+        </p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const studentUsageCtx = document.getElementById('studentUsageChart').getContext('2d');
+            new Chart(studentUsageCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['ESの推敲・添削', 'ESのたたき台作成', '自己分析', ['面接対策', '（増加中）']],
+                    datasets: [{
+                        label: '利用割合 (%)',
+                        data: [69, 42, 29, 25],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(59, 130, 246, 0.5)',
+                            'rgba(59, 130, 246, 0.4)',
+                            'rgba(59, 130, 246, 0.3)',
+                        ],
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const guideToggleDo = document.getElementById('guideToggleDo');
+            const guideToggleDont = document.getElementById('guideToggleDont');
+            const guideContentDo = document.getElementById('guideContentDo');
+            const guideContentDont = document.getElementById('guideContentDont');
+
+            guideToggleDo.addEventListener('click', () => {
+                guideContentDo.classList.remove('hidden');
+                guideContentDont.classList.add('hidden');
+                guideToggleDo.classList.add('guide-tab-active');
+                guideToggleDo.classList.remove('guide-tab-inactive');
+                guideToggleDont.classList.add('guide-tab-inactive');
+                guideToggleDont.classList.remove('guide-tab-active');
+            });
+
+            guideToggleDont.addEventListener('click', () => {
+                guideContentDont.classList.remove('hidden');
+                guideContentDo.classList.add('hidden');
+                guideToggleDont.classList.add('guide-tab-active');
+                guideToggleDont.classList.remove('guide-tab-inactive');
+                guideToggleDo.classList.add('guide-tab-inactive');
+                guideToggleDo.classList.remove('guide-tab-active');
+            });
+            
+            const navLinks = document.querySelectorAll('#nav-links a');
+            const sections = document.querySelectorAll('section');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4 
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                let activeSectionId = '';
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        activeSectionId = entry.target.id;
+                    }
+                });
+
+                if (!activeSectionId) {
+                    const visibleSections = Array.from(sections).filter(s => {
+                        const rect = s.getBoundingClientRect();
+                        return rect.top < window.innerHeight && rect.bottom >= 0;
+                    });
+                    if (visibleSections.length > 0) {
+                        activeSectionId = visibleSections[0].id;
+                    }
+                }
+
+                navLinks.forEach(link => {
+                    link.classList.remove('nav-link-active');
+                    if (link.getAttribute('href') === `#${activeSectionId}`) {
+                        link.classList.add('nav-link-active');
+                    }
+                });
+
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        const topOffset = targetElement.offsetTop - 64;
+                        window.scrollTo({
+                            top: topOffset,
+                            behavior: 'smooth'
+                        });
+                        
+                        history.pushState(null, null, targetId);
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
